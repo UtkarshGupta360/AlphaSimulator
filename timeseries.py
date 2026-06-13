@@ -239,5 +239,74 @@ def ffill(arr, axis=1):
     else:
         raise ValueError("axis must be 0 or 1")
 
+def ts_median(arr, n=0, axis=1):
+    """
+    This function calculates the median of the input array `arr` over a rolling window of size `n` along the specified `axis`.
+    Parameters:
+    arr (numpy.ndarray): The input array for which the rolling median is to be calculated.
+    n (int): The size of the rolling window. It determines how many elements are included in the median calculation.
+    axis (int): The axis along which to calculate the rolling median. 0 for rows and 1 for columns. Default is 1 (columns).
+    Returns:
+    numpy.ndarray: The array containing the rolling median values. The shape of the output array is the same as the input array, with NaN values filling the positions where the rolling median cannot be calculated due to insufficient data points.
+    Example:
+    >>> arr = np.array([1, 2, 3, 4, 5])
+    >>> ts_median(arr, n=2)
+    [       nan 1.5 2.5 3.5 4.5]
+    """
+    arr = np.asarray(arr)
+
+    if arr.ndim == 1:
+        shape = (len(arr) - n + 1, n)
+        strides = (arr.strides[0], arr.strides[0])
+
+        windows = as_strided(arr, shape=shape, strides=strides)
+
+        out = np.full(arr.shape, np.nan)
+        out[n-1:] = np.median(windows, axis=1)
+        return out
+
+    if axis == 1:
+        m, T = arr.shape
+
+        shape = (m, T - n + 1, n)
+        strides = (arr.strides[0], arr.strides[1], arr.strides[1])
+
+        windows = as_strided(arr, shape=shape, strides=strides)
+
+        out = np.full(arr.shape, np.nan)
+        out[:, n-1:] = np.median(windows, axis=2)
+        return out
+
+    else:
+        m, T = arr.shape
+        shape = (m - n + 1, n, T)
+        strides = (arr.strides[0], arr.strides[0], arr.strides[1])
+
+        windows = as_strided(arr, shape=shape, strides=strides)
+
+        out = np.full(arr.shape, np.nan)
+        out[n-1:, :] = np.median(windows, axis=1)
+        return out
+    
+def ts_skewness(arr, n, axis = 1):
+    """
+    This function calculates the skewness of the input array `arr` over a rolling window of size `n` along the specified `axis`.
+    Parameters:
+    arr (numpy.ndarray): The input array for which the rolling skewness is to be calculated.
+    n (int): The size of the rolling window. It determines how many elements are included in the skewness calculation.
+    axis (int): The axis along which to calculate the rolling skewness. 0 for rows and 1 for columns. Default is 1 (columns).
+    Returns:
+    numpy.ndarray: The array containing the rolling skewness values. The shape of the output array is the same as the input array, with NaN values filling the positions where the rolling skewness cannot be calculated due to insufficient data points.
+    Example:
+    >>> arr = np.array([1, 2, 3, 4, 5])
+    >>> ts_skewness(arr, n=2)
+    [       nan 0. 0. 0. 0.]
+    """
+    mean = ts_mean(arr, n, axis)
+    median = ts_median(arr, n, axis)
+    std = ts_std(arr, n, axis)
+    skewness = (3*(mean - median))/std
+    return skewness
+
 
 
